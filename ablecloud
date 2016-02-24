@@ -1,0 +1,11 @@
+#!/bin/sh /etc/rc.common
+# Copyright WRTnode Team
+
+START=99
+start() {
+	if [ -f "/etc/AbcloudFrimware" ]; then
+		 mv /tmp/AbcloudFrimware /usr/bin
+	fi
+	 /usr/bin/AbcloudFrimware
+}
+

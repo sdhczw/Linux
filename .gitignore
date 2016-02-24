@@ -1,0 +1,10 @@
+*.o
+*.d
+*.exe
+*.obj
+*.elf
+*.rar
+*.zip
+*.bak
+*.tmp
+*.lib
