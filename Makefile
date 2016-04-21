@@ -12,20 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-#CC = /home/noel/mroot/openwrt/trunk/staging_dir/toolchain-mipsel_24kec+dsp_gcc-4.8-linaro_uClibc-0.9.33.2/bin/mipsel-openwrt-linux-uclibc-gcc
+#CC = /home/zhangwen/cross/am335xt3/devkit/arm-arago-linux-gnueabi/bin/gcc
+#SYSROOT = /home/zhangwen/cross/am335xt3/devkit/arm-arago-linux-gnueabi
+#AR = /home/zhangwen/cross/am335xt3/devkit/arm-arago-linux-gnueabi/bin/ar
+AR = ar
 CC = gcc
 LOCAL_PATH := $(shell pwd)
 include $(CLEAR_VARS)
-LOCAL_C_INCLUDES := -I$(LOCAL_PATH)/         \
-					          -I$(LOCAL_PATH)/ZC/inc/zc \
+LOCAL_C_INCLUDES := -I$(LOCAL_PATH)         \
+                    -I$(LOCAL_PATH)/ZC/inc/zc \
                     -I$(LOCAL_PATH)/ZC/inc/aes \
                     -I$(LOCAL_PATH)/ZC/inc/tropicssl \
-					          -I$(LOCAL_PATH)/AC/inc
-LOCAL_MODULE    := Device-Service
-LOCAL_SRC_FILES := zc_wrtnode_adpter.o \
-				           AC/src/ac_api.o \
-				           AC/src/ac_hal.o \
-                   ZC/src/zc/zc_bc.o \
+		    -I$(LOCAL_PATH)/AC/inc
+CFLAGS = -O2 -Wall -g -Wunused-variable
+LOCAL_LIB = libACDeviceTcp.a
+LOCAL_LIBSRC_FILES := ZC/src/zc/zc_bc.c \
+                   ZC/src/zc/zc_client_manager.c \
+                   ZC/src/zc/zc_cloud_event.c \
+                   ZC/src/zc/zc_common.c \
+                   ZC/src/zc/zc_configuration.c \
+                   ZC/src/zc/zc_message_queue.c \
+                   ZC/src/zc/zc_moudle_manager.c \
+                   ZC/src/zc/zc_protocol_controller.c \
+                   ZC/src/zc/zc_sec_engine.c \
+                   ZC/src/zc/zc_timer.c \
+                   ZC/src/tropicssl/bignum.c \
+                   ZC/src/tropicssl/rsa.c \
+                   ZC/src/crc/crc.c \
+                   ZC/src/aes/aes_cbc.c \
+                   ZC/src/aes/aes_core.c
+LOCAL_LIBSRC_OBJECT := ZC/src/zc/zc_bc.o \
                    ZC/src/zc/zc_client_manager.o \
                    ZC/src/zc/zc_cloud_event.o \
                    ZC/src/zc/zc_common.o \
@@ -39,24 +55,27 @@ LOCAL_SRC_FILES := zc_wrtnode_adpter.o \
                    ZC/src/tropicssl/rsa.o \
                    ZC/src/crc/crc.o \
                    ZC/src/aes/aes_cbc.o \
-                   ZC/src/aes/aes_core.o \
-				   main.o
+                   ZC/src/aes/aes_core.o	               
+LOCAL_MODULE := Device-Service
+LOCAL_SRC_FILES := AC/src/ac_api.c \
+		  AC/src/ac_hal.c \
+                  zc_wrtnode_adpter.c \
+		  main.c
 LOCAL_LDLIBS := -L$(SYSROOT)/usr/lib -lpthread
 LOCAL_CFLAGS := -DZC_MODULE_VERSION \
                 -DZC_MODULE_TYPE \
                 -DTEST_ADDR \
                 -DZC_MODULE_DEV
-LOCAL_EXPORT_CFLAGS := -DZC_MODULE_VERSION \
-                       -DZC_MODULE_TYPE \
-                       -DTEST_ADDR \
-                       -DZC_MODULE_DEV
 include $(BUILD_SHARED_LIBRARY)
 LOCAL_PROGUARD_ENABLED:= disabled
-all: Makefile $(LOCAL_MODULE)
-$(LOCAL_MODULE): $(LOCAL_SRC_FILES)
-	$(CC) $(LOCAL_CFLAGS) $(LOCAL_SRC_FILES) $(LOCAL_LDLIBS) -o $(LOCAL_MODULE)
-%.o: %.c
+all: Makefile $(LOCAL_LIBSRC_OBJECT) $(LOCAL_LIB) $(LOCAL_MODULE)
+$(LOCAL_LIBSRC_OBJECT): %.o: %.c
 	$(CC) -c $(LOCAL_C_INCLUDES) $(LOCAL_CFLAGS) $^ -o $@
-
+$(LOCAL_LIB): $(LOCAL_LIBOBJS)
+	$(AR) cqs $(LOCAL_LIB) $(LOCAL_LIBSRC_OBJECT)
+	cp $(LOCAL_LIB) $(LOCAL_PATH)/lib
+$(LOCAL_MODULE):
+	$(CC) $(CFLAGS) $(LOCAL_CFLAGS) $(LOCAL_SRC_FILES) $(LOCAL_C_INCLUDES) $(LOCAL_LDLIBS) -o $(LOCAL_MODULE) $(LOCAL_LIB)
 clean:
-	rm -f ZC/src/zc/*.o ZC/src/tropicssl/*.o ZC/src/aes/*.o ZC/src/crc/*.o ac/*.o *.o $(LOCAL_MODULE)
+	rm -f $(LOCAL_LIBSRC_OBJECT) $(LOCAL_LIB) $(LOCAL_MODULE) AC/src/*.o
+

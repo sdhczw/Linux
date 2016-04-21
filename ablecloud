@@ -1,11 +1,11 @@
 #!/bin/sh /etc/rc.common
-# Copyright WRTnode Team
-
+# Copyright Abcloud Team
+#@/etc/init.d/
 START=99
 start() {
-	if [ -f "/etc/AbcloudFrimware" ]; then
-		 mv /tmp/AbcloudFrimware /usr/bin
+	if [ -f "/tmp/AbcloudFirmware" ]; then
+		 mv /tmp/AbcloudFirmware /usr/bin
 	fi
-	 /usr/bin/AbcloudFrimware
+	 /usr/bin/AbcloudFirmware
 }
 

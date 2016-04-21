@@ -21,8 +21,11 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <stdarg.h> 
+#include <ac_api.h>
 #define FirmwarePath "/tmp/AbcloudFrimware" 
 extern PTC_ProtocolCon  g_struProtocolController;
 PTC_ModuleAdapter g_struWRTnodeAdapter;
@@ -76,9 +79,7 @@ pthread_attr_t timerattr;
 void WRTnode_ReadDataFormFlash(u8 *pu8Data, u16 u16Len) 
 {
 	int fd_read;
-	int R_size = 0;
-    u32 u32MagicFlag = 0xFFFFFFFF;
-    
+	int R_size = 0;  
 
     fd_read = open("/tmp/ablecloud", O_RDONLY | O_CREAT, S_IRWXU);
     if(fd_read < 0)
@@ -89,7 +90,7 @@ void WRTnode_ReadDataFormFlash(u8 *pu8Data, u16 u16Len)
         return;
     }
 	R_size = lseek(fd_read, sizeof(ZC_ConfigDB)-4, SEEK_SET);
-    if(R_size < 0)
+    if(R_size <= 0)
     {
         pu8Data[0] = (rand()% 26) + 65;
 		printf("lseek mtd fail\n");
@@ -98,7 +99,7 @@ void WRTnode_ReadDataFormFlash(u8 *pu8Data, u16 u16Len)
 	}
     R_size = read(fd_read, (char *)(pu8Data), u16Len);
 
-    if(R_size < 0)
+    if(R_size <= 0)
     {
         pu8Data[0] = (rand()% 26) + 65;
 		printf("read mtd fail\n");
@@ -192,7 +193,6 @@ void *WRTnode_timer_callback(u32 count)
 *************************************************/
 void WRTnode_StopTimer(u8 u8TimerIndex)
 {
-	void *status;
 #if 0
     WRTnodetimer_stop(g_struWRTnodeTimer[u8TimerIndex].struHandle);
     WRTnodetimer_delete(g_struWRTnodeTimer[u8TimerIndex].struHandle);
@@ -229,7 +229,7 @@ u32 WRTnode_SetTimer(u8 u8Type, u32 u32Interval, u8 *pu8TimeIndex)
 		if(pthread_create(&g_struWRTnodeTimer[u8TimerIndex].struHandle, NULL, WRTnode_timer_callback, NULL) == -1){
 			printf("fail to create timer");
 			pthread_mutex_unlock(&g_struTimermutex);
-			return ;
+			return 0xff;
 		}
 
         *pu8TimeIndex = u8TimerIndex;
@@ -276,8 +276,6 @@ u32 WRTnode_FirmwareUpdateFinish(u32 u32TotalLen)
 *************************************************/
 u32 WRTnode_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 {
-	
-    int retval;
 #if 0
     int retval;
     if (0 == u32Offset)
@@ -292,7 +290,7 @@ u32 WRTnode_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
     }
 #endif
     if (0 == u32Offset){
-		FirmwareFd = open(FirmwarePath, O_WRONLY|O_CREAT);
+		FirmwareFd = open(FirmwarePath, O_WRONLY|O_CREAT,777);
 	}
 
 	if(FirmwareFd < 0){
@@ -301,7 +299,7 @@ u32 WRTnode_FirmwareUpdate(u8 *pu8FileData, u32 u32Offset, u32 u32DataLen)
 	}
 
 	lseek(FirmwareFd,u32Offset,SEEK_SET);
-	retval = write(FirmwareFd,pu8FileData,u32DataLen);
+	write(FirmwareFd,pu8FileData,u32DataLen);
  	   
     return ZC_RET_OK;
 }
@@ -373,7 +371,7 @@ void WRTnode_SendUdpData(u32 u32Fd, u8 *pu8Data, u16 u16DataLen, ZC_SendParam *p
 * Parameter: 
 * History:
 *************************************************/
-static void *WRTnode_CloudRecvfunc(void* arg) 
+static void WRTnode_CloudRecvfunc(void* arg) 
 {
     s32 s32RecvLen=0; 
     fd_set fdread;
@@ -382,7 +380,6 @@ static void *WRTnode_CloudRecvfunc(void* arg)
     u32 u32ActiveFlag = 0;
     struct sockaddr_in cliaddr;
     int connfd;
-    extern u8 g_u8ClientStart;
     u32 u32MaxFd = 0;
     struct timeval timeout; 
     struct sockaddr_in addr;
@@ -586,6 +583,7 @@ u32 WRTnode_ConnectToCloud(PTC_Connection *pstruConnection)
         port = g_struZcConfigDb.struSwitchInfo.u16ServerPort;
 		addr.sin_addr.s_addr = htonl(g_struZcConfigDb.struSwitchInfo.u32ServerIp);
         retval = WRTnode_SUCCESS;
+        printf("connect 1!\n");
     }
     else
     {
@@ -595,6 +593,7 @@ u32 WRTnode_ConnectToCloud(PTC_Connection *pstruConnection)
 			retval = WRTnode_SUCCESS;
 			memcpy(&addr.sin_addr, host->h_addr_list[0], host->h_length);
 		}
+        printf("connect =%s2!\n",g_struZcConfigDb.struCloudInfo.u8CloudAddr);
     }
 
     if (WRTnode_SUCCESS != retval)
@@ -721,7 +720,7 @@ void WRTnode_BcInit()
 * Parameter: 
 * History:
 *************************************************/
-static void *WRTnode_Cloudfunc(void* arg) 
+static void WRTnode_Cloudfunc(void* arg) 
 {
     int fd;
     u32 u32Timer = 0;

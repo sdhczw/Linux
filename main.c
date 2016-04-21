@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <ac_api.h>
 #include <zc_protocol_controller.h>
-
+#include <zc_wrtnode_adpter.h>
 extern PTC_ProtocolCon  g_struProtocolController;
 
 int main(int argc, char *argv[]){
